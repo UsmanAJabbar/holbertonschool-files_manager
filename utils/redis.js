@@ -11,21 +11,22 @@ class RedisClient {
   }
 
   async get(key) {
-    const redisGet = promisify(this.redisClient.get);
+    const redisGet = promisify(this.redisClient.get).bind(this.redisClient);
     const value = await redisGet(key);
+    print(value)
     return value;
   }
 
   async set(key, value, expDuration) {
-    const redisSet = promisify(this.redisClient.setex);
+    const redisSet = promisify(this.redisClient.setex).bind(this.redisClient);
     await redisSet(key, expDuration, value);
   }
 
   async del(key) {
-    const redisDel = promisify(this.redisClient.del);
+    const redisDel = promisify(this.redisClient.del).bind(this.redisClient);
     await redisDel(key);
   }
 }
 
-const redisClient = RedisClient();
-export default redisClient;
+const redisClient = new RedisClient();
+module.exports = redisClient;
