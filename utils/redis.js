@@ -3,7 +3,7 @@ const { promisify } = require('util');
 
 class RedisClient {
   constructor() {
-    this.redisClient = redis.createClient().on('error', () => redis.print);
+    this.redisClient = redis.createClient().on('error', (err) => { console.log(err.message)});
   }
 
   isAlive() {
@@ -13,7 +13,6 @@ class RedisClient {
   async get(key) {
     const redisGet = promisify(this.redisClient.get).bind(this.redisClient);
     const value = await redisGet(key);
-    print(value)
     return value;
   }
 
