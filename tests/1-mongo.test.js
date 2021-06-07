@@ -3,10 +3,10 @@ import dbClient  from "../utils/db";
 const assert = require('assert');
 
 
-describe('MongoDB', async() =>{
+describe('MongoDB', () =>{
 
     it('isAlive', async () => {
-        assert.equal(true, await dbClient.isAlive());
+        assert.equal(true, dbClient.isAlive());
     });
 
     it('nbUsers', async () => {

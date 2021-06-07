@@ -1,65 +1,51 @@
 import { env } from 'process';
-import { promisify } from 'util';
-const mongoClient = require('mongodb').MongoClient;
 
+const { MongoClient } = require('mongodb');
 
 const DB_HOST = env.DB_HOST || 'localhost';
 const DB_PORT = env.DB_PORT || 27017;
-const DB_DATABASE = env.DB_DATABASE || 'files_manager'
+const DB_DATABASE = env.DB_DATABASE || 'files_manager';
 const url = `mongodb://${DB_HOST}:${DB_PORT}`;
 
 class DBClient {
   constructor() {
-    this.mongoClient = new mongoClient(url,{useUnifiedTopology: true });
-    this.mongoClient.connect();
-    this.database = this.mongoClient.db(DB_DATABASE);
-    }
-    
-  async isAlive() {
-    let value;
-    try {
-      await this.mongoClient.connect();
-      value = await this.mongoClient.isConnected();
-    } finally {
-      // await this.mongoClient.close();
-    }
+    this.mongoClient = new MongoClient(
+      url,
+      {
+        useUnifiedTopology: true,
+        useNewUrlParser: true,
+      },
+    );
 
-    return value;
+    const promise = new Promise((resolve, reject) => {
+      this.mongoClient.connect((err) => { reject(err); });
+      resolve(this.mongoClient.db(DB_DATABASE));
+    });
+    this.connection = promise;
+  }
+
+  isAlive() {
+    return this.mongoClient.isConnected();
   }
 
   async nbUsers() {
-    // const collection = promisify(this.mongoDB.collection).bind(this.mongoClient);
-    // const numOfUsers = await collection('users').countDocuments();
-    let numOfUsers;
-    try {
-
-      const collection = database.collection('users');
-
-      numOfUsers = await collection.countDocuments();
-    } finally {
-      // await this.mongoClient.close();
-    }
-
-    return numOfUsers;
+    return this.connection
+      .then((database) => {
+        const collection = database.collection('users');
+        return collection.countDocuments();
+      })
+      .catch();
   }
 
   async nbFiles() {
-    // const collection = promisify(this.mongoDB.collection).bind(this.mongoClient);
-    // const numOfFiles = await collection('files').countDocuments();
-    let numOfFiles;
-    try{
-      await this.mongoClient.connect();
-
-      const database = this.mongoClient.db(DB_DATABASE);
-      const collection = database.collection('files');
-
-      numOfFiles = await collection.countDocuments();
-    } finally {
-      // await this.mongoClient.close();
-    }
-    
-    return numOfFiles;
+    return this.connection
+      .then((database) => {
+        const collection = database.collection('files');
+        return collection.countDocuments();
+      })
+      .catch();
   }
 }
+
 const dbClient = new DBClient();
 export default dbClient;
