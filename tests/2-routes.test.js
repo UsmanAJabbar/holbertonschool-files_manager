@@ -36,7 +36,7 @@ describe('API Endpoints', () => {
             .then(
                 (res) => {
                     try {
-                        assert.equal(res.body, '{ "redis": true, "db": true }');
+                        assert.equal(res.body, '{"redis":true,"db":true}');
                     } catch (error) {
                         throw(new Error('Wrong response'));
                     }
@@ -73,7 +73,7 @@ describe('API Endpoints', () => {
             .then(
                 (res) => {
                     try {
-                        assert.equal(res.body, '{ "users": 0, "files": 0 }');
+                        assert.equal(res.body, '{"users":0,"files":0}');
                     } catch (error) {
                         throw(new Error('Wrong response'));
                     }
