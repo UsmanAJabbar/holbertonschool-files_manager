@@ -10,26 +10,54 @@ const url = `mongodb://${DB_HOST}:${DB_PORT}`;
 
 class DBClient {
   constructor() {
-    this.mongoClient = new mongoClient(url);
-    this.mongoDB = this.mongoClient.connect((err) => {
-      if (!err) return this.mongoClient.db(DB_DATABASE);
-      return null;
-    })
-  }
+    this.mongoClient = new mongoClient(url,{useUnifiedTopology: true });
+    this.mongoClient.connect();
+    this.database = this.mongoClient.db(DB_DATABASE);
+    }
+    
+  async isAlive() {
+    let value;
+    try {
+      await this.mongoClient.connect();
+      value = await this.mongoClient.isConnected();
+    } finally {
+      // await this.mongoClient.close();
+    }
 
-  isAlive() {
-    return this.mongoClient.isConnected;
+    return value;
   }
 
   async nbUsers() {
-    const collection = promisify(this.mongoDB.collection).bind(this.mongoClient);
-    const numOfUsers = await collection('users').countDocuments();
+    // const collection = promisify(this.mongoDB.collection).bind(this.mongoClient);
+    // const numOfUsers = await collection('users').countDocuments();
+    let numOfUsers;
+    try {
+
+      const collection = database.collection('users');
+
+      numOfUsers = await collection.countDocuments();
+    } finally {
+      // await this.mongoClient.close();
+    }
+
     return numOfUsers;
   }
 
   async nbFiles() {
-    const collection = promisify(this.mongoDB.collection).bind(this.mongoClient);
-    const numOfFiles = await collection('files').countDocuments();
+    // const collection = promisify(this.mongoDB.collection).bind(this.mongoClient);
+    // const numOfFiles = await collection('files').countDocuments();
+    let numOfFiles;
+    try{
+      await this.mongoClient.connect();
+
+      const database = this.mongoClient.db(DB_DATABASE);
+      const collection = database.collection('files');
+
+      numOfFiles = await collection.countDocuments();
+    } finally {
+      // await this.mongoClient.close();
+    }
+    
     return numOfFiles;
   }
 }
