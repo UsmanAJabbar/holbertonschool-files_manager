@@ -1,10 +1,14 @@
 import DBClient from '../utils/db';
 import RedisClient from '../utils/redis';
-import { decode } from 'js-base64';
 import { v4 as uuid4 } from 'uuid';
 const sha1 = require('sha1');
 
 class AuthController {
+
+  decode(base64UserData) {
+    return atob(base64UserData);
+  }
+
   static async getConnect (req, res) {
     const [ authType, b64UserPass ] = req.headers.authorization.split(' ');
 
