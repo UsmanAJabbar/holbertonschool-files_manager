@@ -1,13 +1,6 @@
-const crypto = require('crypto');
+const sha1 = require('sha1');
 import DBClient from '../utils/db';
-
-/**
- * SHA1 - Hashes a string with the SHA1 algo
- * @returns SHA1-hashed string
- */
-const sha1 = (data) => {
-  return crypto.createHash("sha1").update(data, "binary").digest("hex");
-}
+import RedisClient from '../utils/redis';
 
 class UsersController {
   static async postNew (req, res) {
@@ -34,6 +27,20 @@ class UsersController {
         email: lastUser.email,
       });
 
+    }
+  }
+  static async getMe (req, res) {
+    const token = req.headers['X-Token'];
+    const key = `auth_${token}`;
+
+    const redisUser = await RedisClient.get(key);
+    if (!redisUser) res.status(401).json({"error":"Unauthorized"});
+    else {
+      const mongoUser = await DBClient.findOne({'_id': user._id});
+      res.status(200).send({
+        'id': mongoUser._id,
+        'email': mongoUser.email,
+      })
     }
   }
 }
