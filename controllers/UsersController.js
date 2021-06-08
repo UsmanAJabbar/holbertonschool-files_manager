@@ -12,19 +12,13 @@ class UsersController {
     if (!email) res.status(400).json({"error":"Missing email"});
     else if (!password) res.status(400).json({"error":"Missing password"})
     else {
-      DBClient.connection
-      .then(
-        (database) => {
-          const collection = database.collection('users');
-          collection.findOne({email}, (err, docs) => {
-            if (docs === null) res.status(200).send("Time to make a new user");
-          });
-        }
-      )
-      .catch();
-      // if (await DBClient.findOne({ email })) {
-      //   res.status(400).json({"error":"Already exist"})
-      // }
+      const database = await DBClient.connection;
+
+      const collection = database.collection('users');
+      const user = await collection.findOne({email});
+
+      if (user === null) res.send("Time to make a new user")
+      else res.send(user);
 
       // const hashedPass = sha1(password);
       // await DBClient.insertOne({email, 'password': hashedPass});
