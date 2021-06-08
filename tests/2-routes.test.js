@@ -73,7 +73,9 @@ describe('API Endpoints', () => {
             .then(
                 (res) => {
                     try {
-                        assert.equal(res.body, '{"users":0,"files":0}');
+                        const data = JSON.parse(res.body);
+                        assert.equal(true, typeof data.users === 'number');
+                        assert.equal(true, typeof data.files === 'number');
                     } catch (error) {
                         throw(new Error('Wrong response'));
                     }
