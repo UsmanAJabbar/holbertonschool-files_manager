@@ -4,28 +4,36 @@ import RedisClient from '../utils/redis';
 
 class UsersController {
   static async postNew (req, res) {
-    const { email, password } = req.params;
+    const { email, password } = req.body;
 
     // Unsure why req.params == {}
-    console.log(req.params, email, password);
+    console.log(req.body, email, password);
 
     if (!email) res.status(400).json({"error":"Missing email"});
     else if (!password) res.status(400).json({"error":"Missing password"})
     else {
-      const MongoDBClient = await new DBClient();
-      
-      if (await MongoDBClient.findOne({ email })) {
-        res.status(400).json({"error":"Already exist"})
-      }
+      DBClient.connection
+      .then(
+        (database) => {
+          const collection = database.collection('users');
+          collection.findOne({email}, (err, docs) => {
+            if (docs === null) res.status(200).send("Time to make a new user");
+          });
+        }
+      )
+      .catch();
+      // if (await DBClient.findOne({ email })) {
+      //   res.status(400).json({"error":"Already exist"})
+      // }
 
-      const hashedPass = sha1(password);
-      await MongoDBClient.insertOne({email, 'password': hashedPass});
+      // const hashedPass = sha1(password);
+      // await DBClient.insertOne({email, 'password': hashedPass});
 
-      const lastUser = await MongoDBClient.findOne({ email });
-      res.status(201).json({
-        id: lastUser.id,
-        email: lastUser.email,
-      });
+      // const lastUser = await DBClient.findOne({ email });
+      // res.status(201).json({
+      //   id: lastUser.id,
+      //   email: lastUser.email,
+      // });
 
     }
   }
