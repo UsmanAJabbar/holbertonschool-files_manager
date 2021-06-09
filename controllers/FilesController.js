@@ -17,56 +17,70 @@ class FilesController {
     let collection = database.collection('users')
     const user = await collection.findOne({ _id: new mongo.ObjectID(mongoUserId) });
 
-    const { name, type, data } = req.body;
-    let { parentId, isPublic } = req.body;
-
     const fileTypeOptions = ['folder', 'file' , 'image'];
+    const { name, type, data } = req.body;
+    let parentId = (req.body.parentId) ? req.body.parentId : 0;
+    let isPublic = (req.body.isPublic) ? req.body.isPublic : false;
 
     if (!name) return res.status(400).json({ error: 'Missing name' });
     if (!type || !fileTypeOptions.includes(type)) return res.status(400).json({ error: 'Missing type' });
     if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
-    
-    if (user && name && fileTypeOptions.includes(type)) {
-      let path = process.env['FOLDER_PATH'] || '/tmp/files_manager';
-      const file = {
-        userId: user._id,
-        name,
-        type,
-        isPublic,
-        parentId,
+    if (parentId) {
+      const folder = await database.collection('files').findOne({ _id: mongo.ObjectID(parentId) });
+      if (!folder) return res.status(400).json({ error: 'Parent not found' });
+      if (folder.type !== 'folder') return res.status(400).json({ error: 'Parent is not a folder' });
+    }
+
+    if (type === 'folder') {
+      const query = await database.collection('files').insertOne({
+        userId: new mongo.ObjectID(user._id),
+        name, type, isPublic,
+        parentId: (parentId) ? mongo.ObjectID(parentId) : 0,
+      });
+      const folder = query.ops[0];
+      folder.id = folder._id;
+      return res.status(201).json(folder);
+    }
+
+    let path = process.env['FOLDER_PATH'] || '/tmp/files_manager';
+    const file = {
+      userId: user._id,
+      name,
+      type,
+      isPublic,
+      parentId,
+    };
+
+    if (['file', 'image'].includes(file.type)) {
+      if (file.parentId !== 0){
+        path = `${path}/${file.parentId}`;
+      }
+      file.localPath = `${path}/${uuid4()}`;
+    }
+    collection = database.collection('files');
+    collection.insertOne(file, (err, result) => {
+      if (err) return;
+      const file = result.ops[0];
+
+      const decode = (base64) => {
+        const buffer = Buffer.from(base64, 'base64');
+        return buffer.toString('utf-8');
       };
 
-      if (['file', 'image'].includes(file.type)) {
-        if (file.parentId !== 0){
-          path = `${path}/${file.parentId}`;
-        }
-        file.localPath = `${path}/${uuid4()}`;
-      }
-      collection = database.collection('files');
-      collection.insertOne(file, (err, result) => {
-        if (err) return;
-        const file = result.ops[0];
-
-        const decode = (base64) => {
-          const buffer = Buffer.from(base64, 'base64');
-          return buffer.toString('utf-8');
-        };
-
-        fs.mkdir(path, () => {
-          fs.writeFile(file.localPath, decode(data), (err) => {
-            if (err) return res.status(500).send(`oh no\n${err.message}`);
-            return res.status(201).json({
-              id: file._id,
-              userId: file.userId,
-              name: file.name,
-              type: file.type,
-              isPublic: file.isPublic,
-              parentId: file.parentId,
-            });
+      fs.mkdir(path, () => {
+        fs.writeFile(file.localPath, decode(data), (err) => {
+          if (err) return res.status(500).send(`oh no\n${err.message}`);
+          return res.status(201).json({
+            id: file._id,
+            userId: file.userId,
+            name: file.name,
+            type: file.type,
+            isPublic: file.isPublic,
+            parentId: file.parentId,
           });
         });
       });
-    }
+    });
   }
 
   static async getShow (req, res) {
