@@ -15,14 +15,12 @@ class UsersController {
       const collection = database.collection('users');
       const user = await collection.findOne({ email });
 
-      if (user !== null) res.status(400).send('Already exist');
+      if (user !== null) res.status(400).json({ error: 'Already exist' });
       else {
         const hashedPass = sha1(password);
-        await collection.insertOne({ email, password: hashedPass });
-        const lastUser = await collection.findOne({ email });
-        res.status(201).json({
-          id: lastUser.id,
-          email: lastUser.email,
+        collection.insertOne({ email, password: hashedPass }, (err, results) => {
+          const doc = results.ops[0];
+          res.status(201).json({id: doc._id, email: doc.email})
         });
       }
     }
