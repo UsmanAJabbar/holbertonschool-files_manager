@@ -86,7 +86,7 @@ class FilesController {
       const mongoUserId = await RedisClient.get(`auth_${token}`);
       const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
       if (user) {
-        const file = await fileColl.findOne({ _id: new mongo.ObjectId(fileId), userId: user._id.toString() })
+        const file = await fileColl.findOne(filterQuery)
         if (!file) res.status(404).json({ error:'Not found' });
         else res.status(200).json(file);
       }
@@ -114,6 +114,58 @@ class FilesController {
                           ]
       const fileDocs = await fileColl.aggregate(filterQuery);
       res.status(200).json(fileDocs);
+    }
+  }
+  static async putPublish (req, res) {
+    const token = req.headers['x-token'];
+    const fileId = req.body.id || req.id;
+
+    // Test PUT data !== undefined
+    console.log(fileId);
+
+    const database = await DBClient.connection;
+    const userColl = database.collection('users');
+    const fileColl = database.collection('files');
+
+    const mongoUserId = await RedisClient.get(`auth_${token}`);
+    const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
+
+    if (!user) res.status(401).json({ error:'Unauthorized' });
+    else {
+      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id.toString() };
+      const file = await fileColl.findOne(filterQuery);
+
+      if (!file) res.status(404).json({ error:'Not found' });
+      await fileColl.updateOne(filterQuery, { '$set': { 'isPublic':  true } })
+
+      const updatedDoc = await fileColl.findOne(filterQuery);
+      res.status(200).json(updatedDoc);
+    }
+  }
+  static async putUnpublish (req, res) {
+    const token = req.headers['x-token'];
+    const fileId = req.body.id || req.id;
+
+    // Test PUT data !== undefined
+    console.log(fileId);
+
+    const database = await DBClient.connection;
+    const userColl = database.collection('users');
+    const fileColl = database.collection('files');
+
+    const mongoUserId = await RedisClient.get(`auth_${token}`);
+    const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
+
+    if (!user) res.status(401).json({ error:'Unauthorized' });
+    else {
+      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id.toString() };
+      const file = await fileColl.findOne(filterQuery);
+
+      if (!file) res.status(404).json({ error:'Not found' });
+      await fileColl.updateOne(filterQuery, { '$set': { 'isPublic':  false } })
+
+      const updatedDoc = await fileColl.findOne(filterQuery);
+      res.status(200).json(updatedDoc);
     }
   }
 }
