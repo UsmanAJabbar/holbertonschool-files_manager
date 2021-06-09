@@ -4,6 +4,7 @@ import { v4 as uuid4 } from 'uuid';
 
 const mongo = require('mongodb');
 const process = require('process');
+const fs = require('fs');
 
 class FilesController {
   static async postUpload (req, res) {
@@ -70,6 +71,7 @@ class FilesController {
         });
 
       });
+<<<<<<< HEAD
     }
   }
   static async getShow (req, res) {
@@ -113,6 +115,8 @@ class FilesController {
                           ]
       const fileDocs = await fileColl.aggregate(filterQuery);
       res.status(200).json(fileDocs);
+=======
+>>>>>>> a41601372d4e5a02498328d86bfd8d4a97df3981
     }
   }
 }
