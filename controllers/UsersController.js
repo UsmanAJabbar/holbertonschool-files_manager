@@ -2,6 +2,7 @@ import DBClient from '../utils/db';
 import RedisClient from '../utils/redis';
 
 const sha1 = require('sha1');
+const mongo = require('mongodb');
 
 class UsersController {
   static async postNew(req, res) {
@@ -27,18 +28,18 @@ class UsersController {
   }
 
   static async getMe(req, res) {
-    const token = req.headers['X-Token'];
+    const token = req.headers['x-token'];
     const key = `auth_${token}`;
-
     const redisUser = await RedisClient.get(key);
     if (!redisUser) res.status(401).json({ error: 'Unauthorized' });
     else {
       const database = await DBClient.connection;
       const collection = database.collection('users');
-      const mongoUser = await collection.findOne({ _id: redisUser._id });
-      res.status(200).send({
-        id: mongoUser._id,
-        email: mongoUser.email,
+      collection.findOne({ _id: new mongo.ObjectId(redisUser) }, (err, user) => {
+        res.status(200).json({
+          id: user._id,
+          email: user.email,
+        });
       });
     }
   }
