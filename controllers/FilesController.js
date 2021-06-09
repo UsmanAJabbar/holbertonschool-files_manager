@@ -43,22 +43,17 @@ class FilesController {
     }
 
     let path = process.env['FOLDER_PATH'] || '/tmp/files_manager';
+    // if (parentId !== 0) path = `${path}/${parentId}`;
     const file = {
       userId: user._id,
       name,
       type,
       isPublic,
       parentId,
+      localPath: `${path}/${uuid4()}`,
     };
 
-    if (['file', 'image'].includes(file.type)) {
-      if (file.parentId !== 0){
-        path = `${path}/${file.parentId}`;
-      }
-      file.localPath = `${path}/${uuid4()}`;
-    }
-    collection = database.collection('files');
-    collection.insertOne(file, (err, result) => {
+    database.collection('files').insertOne(file, (err, result) => {
       if (err) return;
       const file = result.ops[0];
 
