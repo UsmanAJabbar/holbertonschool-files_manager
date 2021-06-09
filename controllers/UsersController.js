@@ -20,7 +20,7 @@ class UsersController {
         const hashedPass = sha1(password);
         collection.insertOne({ email, password: hashedPass }, (err, results) => {
           const doc = results.ops[0];
-          res.status(201).json({id: doc._id, email: doc.email})
+          res.status(201).json({ id: doc._id, email: doc.email });
         });
       }
     }
