@@ -205,7 +205,7 @@ class FilesController {
           if (err) res.status(400).json({ error: 'Unable to read contents of the file'});
           else {
             // Return the content of the file with the correct MIME-type
-            res.status(200).json(fileContent, mimeType);
+            res.status(200).json({fileContent, mimeType});
           }
         });
 
