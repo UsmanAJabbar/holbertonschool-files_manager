@@ -135,10 +135,7 @@ class FilesController {
 
   static async putPublish (req, res) {
     const token = req.headers['x-token'];
-    const fileId = req.body.id || req.id;
-
-    // Test PUT data !== undefined
-    console.log(fileId);
+    const fileId = req.params.id;
 
     const database = await DBClient.connection;
     const userColl = database.collection('users');
@@ -162,10 +159,7 @@ class FilesController {
 
   static async putUnpublish (req, res) {
     const token = req.headers['x-token'];
-    const fileId = req.body.id || req.id;
-
-    // Test PUT data !== undefined
-    console.log(fileId);
+    const fileId = req.params.id;
 
     const database = await DBClient.connection;
     const userColl = database.collection('users');
@@ -189,7 +183,7 @@ class FilesController {
 
   static async getFile (req, res) {
     const token = req.headers['x-token'];
-    const fileId = req.body.id || req.id;
+    const fileId = req.params.id;
 
     const database = await DBClient.connection;
     const userColl = database.collection('users');
