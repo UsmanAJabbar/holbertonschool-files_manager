@@ -80,7 +80,7 @@ class FilesController {
   }
 
   static async getShow (req, res) {
-    const fileId = req.body.id;
+    const fileId = req.params.id;
     const token = req.headers['x-token'];
 
     if (!token || !fileId) res.status(401).json({ error:'Unauthorized' });
@@ -92,9 +92,12 @@ class FilesController {
       const mongoUserId = await RedisClient.get(`auth_${token}`);
       const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
       if (user) {
-        const file = await fileColl.findOne(filterQuery)
-        if (!file) res.status(404).json({ error:'Not found' });
-        else res.status(200).json(file);
+        const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id };
+        const file = await fileColl.findOne(filterQuery);
+
+        if (!file) return res.status(404).json({ error:'Not found' });
+
+        res.status(200).json(file);
       }
     }
   }
@@ -140,7 +143,7 @@ class FilesController {
 
     if (!user) res.status(401).json({ error:'Unauthorized' });
     else {
-      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id.toString() };
+      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id };
       const file = await fileColl.findOne(filterQuery);
 
       if (!file) res.status(404).json({ error:'Not found' });
@@ -167,7 +170,7 @@ class FilesController {
 
     if (!user) res.status(401).json({ error:'Unauthorized' });
     else {
-      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id.toString() };
+      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id };
       const file = await fileColl.findOne(filterQuery);
 
       if (!file) res.status(404).json({ error:'Not found' });
@@ -191,7 +194,7 @@ class FilesController {
 
     if (!user) res.status(401).json({ error:'Unauthorized' });
     else {
-      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id.toString() };
+      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id };
       const file = await fileColl.findOne(filterQuery);
 
       if (!file || !file.isPublic) res.status(404).json({ error:'Not found' });
