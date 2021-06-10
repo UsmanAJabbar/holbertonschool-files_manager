@@ -1,6 +1,7 @@
 import DBClient from '../utils/db';
 import RedisClient from '../utils/redis';
 import { v4 as uuid4 } from 'uuid';
+import { contentType } from 'mime-types';
 
 const mongo = require('mongodb');
 const process = require('process');
@@ -122,6 +123,7 @@ class FilesController {
       res.status(200).json(fileDocs);
     }
   }
+
   static async putPublish (req, res) {
     const token = req.headers['x-token'];
     const fileId = req.body.id || req.id;
@@ -148,6 +150,7 @@ class FilesController {
       res.status(200).json(updatedDoc);
     }
   }
+
   static async putUnpublish (req, res) {
     const token = req.headers['x-token'];
     const fileId = req.body.id || req.id;
@@ -174,6 +177,42 @@ class FilesController {
       res.status(200).json(updatedDoc);
     }
   }
+
+  static async getFile (req, res) {
+    const token = req.headers['x-token'];
+    const fileId = req.body.id || req.id;
+
+    const database = await DBClient.connection;
+    const userColl = database.collection('users');
+    const fileColl = database.collection('files');
+
+    const mongoUserId = await RedisClient.get(`auth_${token}`);
+    const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
+
+    if (!user) res.status(401).json({ error:'Unauthorized' });
+    else {
+      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id.toString() };
+      const file = await fileColl.findOne(filterQuery);
+
+      if (!file || !file.isPublic) res.status(404).json({ error:'Not found' });
+      else if (file.type === 'folder') res.status(400).json({error: "A folder doesn't have content"});
+      // If the file is not locally present, return an error Not found with a status code 404
+      else {
+        const mimeType = contentType(file.name);
+        const filePath = filename.localPath;
+
+        fs.readFile(filePath, 'utf-8', (err, fileContent) => {
+          if (err) res.status(400).json({ error: 'Unable to read contents of the file'});
+          else {
+            // Return the content of the file with the correct MIME-type
+            res.status(200).json(fileContent, mimeType);
+          }
+        });
+
+      }
+    }
+  }
+
 }
 
 module.exports = FilesController;
