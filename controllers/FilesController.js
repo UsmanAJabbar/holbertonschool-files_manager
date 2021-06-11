@@ -91,6 +91,7 @@ class FilesController {
 
       const mongoUserId = await RedisClient.get(`auth_${token}`);
       const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
+      console.log(user);
       if (user) {
         const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id };
         const file = await fileColl.findOne(filterQuery);
@@ -98,13 +99,15 @@ class FilesController {
         if (!file) return res.status(404).json({ error:'Not found' });
 
         res.status(200).json(file);
+      } else {
+        return res.status(401).json({ error:'Unauthorized' });
       }
     }
   }
 
   static async getIndex (req, res) {
     const token = req.headers['x-token'];
-    const parentId = req.query.parentId || 0;
+    const parentId = req.query.parentId || '0';
     const page = req.query.page || 0;
 
     const database = await DBClient.connection;
@@ -118,21 +121,21 @@ class FilesController {
     else {
       const docsPerPage = 20;
       const filterQuery = [ 
-                            { '$match': { parentId, userId: user._id.toString() } },
+                            { '$match': { parentId, userId: user._id } },
+                            { '$project': { "id": "$_id", 'userId': "$userId", 'name': 1, 'type': 1, 'parentId': 1 } },
                             { '$limit': docsPerPage },
                             { '$skip': page * docsPerPage },
                           ]
-      const fileDocs = await fileColl.aggregate(filterQuery);
+
+      const fileDocs = await fileColl.aggregate(filterQuery).toArray();
+
       res.status(200).json(fileDocs);
     }
   }
 
   static async putPublish (req, res) {
     const token = req.headers['x-token'];
-    const fileId = req.body.id || req.id;
-
-    // Test PUT data !== undefined
-    console.log(fileId);
+    const fileId = req.params.id;
 
     const database = await DBClient.connection;
     const userColl = database.collection('users');
@@ -156,10 +159,7 @@ class FilesController {
 
   static async putUnpublish (req, res) {
     const token = req.headers['x-token'];
-    const fileId = req.body.id || req.id;
-
-    // Test PUT data !== undefined
-    console.log(fileId);
+    const fileId = req.params.id;
 
     const database = await DBClient.connection;
     const userColl = database.collection('users');
@@ -183,7 +183,7 @@ class FilesController {
 
   static async getFile (req, res) {
     const token = req.headers['x-token'];
-    const fileId = req.body.id || req.id;
+    const fileId = req.params.id;
 
     const database = await DBClient.connection;
     const userColl = database.collection('users');
