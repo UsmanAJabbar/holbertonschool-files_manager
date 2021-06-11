@@ -192,23 +192,25 @@ class FilesController {
     const mongoUserId = await RedisClient.get(`auth_${token}`);
     const user = await userColl.findOne({ _id: new mongo.ObjectId(mongoUserId) });
 
+    if (!token) return res.status(404).json({ error:'Not found' });
     if (!user) res.status(401).json({ error:'Unauthorized' });
     else {
-      const filterQuery = { _id: new mongo.ObjectId(fileId), userId: user._id };
+      const filterQuery = { _id: new mongo.ObjectId(fileId) };
       const file = await fileColl.findOne(filterQuery);
 
-      if (!file || !file.isPublic) res.status(404).json({ error:'Not found' });
+      if (!file) return res.status(404).json({ error:'Not found' });
+      if (!file.isPublic && file.userId.toString() !== user._id.toString()) return res.status(404).json({ error:'Not found' });
       else if (file.type === 'folder') res.status(400).json({error: "A folder doesn't have content"});
       // If the file is not locally present, return an error Not found with a status code 404
       else {
-        const mimeType = contentType(file.name);
-        const filePath = filename.localPath;
+        const mimeType = contentType(file.name) || 'text/plain';
+        const filePath = file.localPath;
 
         fs.readFile(filePath, 'utf-8', (err, fileContent) => {
           if (err) res.status(400).json({ error: 'Unable to read contents of the file'});
           else {
-            // Return the content of the file with the correct MIME-type
-            res.status(200).json({fileContent, mimeType});
+            res.header('Content-Type', mimeType);
+            res.status(200).send(fileContent);
           }
         });
 
