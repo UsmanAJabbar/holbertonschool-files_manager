@@ -1,5 +1,6 @@
 import DBClient from '../utils/db';
 import RedisClient from '../utils/redis';
+import Queue from 'bull';
 import { v4 as uuid4 } from 'uuid';
 import { contentType } from 'mime-types';
 
@@ -18,7 +19,7 @@ class FilesController {
     let collection = database.collection('users')
     const user = await collection.findOne({ _id: new mongo.ObjectID(mongoUserId) });
 
-    const fileTypeOptions = ['folder', 'file' , 'image'];
+    const fileTypeOptions = ['folder', 'file', 'image'];
     const { name, type, data } = req.body;
     let parentId = (req.body.parentId) ? req.body.parentId : 0;
     let isPublic = (req.body.isPublic) ? req.body.isPublic : false;
@@ -47,34 +48,28 @@ class FilesController {
     // if (parentId !== 0) path = `${path}/${parentId}`;
     const file = {
       userId: user._id,
-      name,
-      type,
-      isPublic,
-      parentId,
+      name, type, isPublic, parentId,
       localPath: `${path}/${uuid4()}`,
     };
 
     database.collection('files').insertOne(file, (err, result) => {
       if (err) return;
       const file = result.ops[0];
+      file.id = file._id;
 
-      const decode = (base64) => {
-        const buffer = Buffer.from(base64, 'base64');
-        return buffer.toString('utf-8');
+      const callback = (err) => {
+        if (err) return res.status(500).send(`oh no\n${err.message}`);
+        return res.status(201).json(file);
       };
 
       fs.mkdir(path, () => {
-        fs.writeFile(file.localPath, decode(data), (err) => {
-          if (err) return res.status(500).send(`oh no\n${err.message}`);
-          return res.status(201).json({
-            id: file._id,
-            userId: file.userId,
-            name: file.name,
-            type: file.type,
-            isPublic: file.isPublic,
-            parentId: file.parentId,
-          });
-        });
+        if (file.type === 'image') {
+          const queue = new Queue('fileQueue');
+          await queue.add({ userId: file.userId, fileId: file.id});
+          fs.writeFile(file.localPath, Buffer.from(data, 'base64').toString('binary'), callback);
+        } else {
+          fs.writeFile(file.localPath, Buffer.from(data, 'base64').toString('utf-8'), callback);
+        }
       });
     });
   }
