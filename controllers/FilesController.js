@@ -62,7 +62,7 @@ class FilesController {
         return res.status(201).json(file);
       };
 
-      fs.mkdir(path, () => {
+      fs.mkdir(path, async () => {
         if (file.type === 'image') {
           const queue = new Queue('fileQueue');
           await queue.add({ userId: file.userId, fileId: file.id});
